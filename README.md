@@ -99,11 +99,10 @@ aws ecs update-service --cluster strands-cluster --service strands-service --for
 
 - ✅ `.env`: ローカル開発用（Gitで除外）
 - ✅ `env.example`: サンプル設定（Gitで管理）
-- ❌ **絶対にコミットしないもの**: AWS認証情報、IPアドレス、シークレット
 
 ### アクセス制御
 
-- 自宅IPアドレス限定でのALBアクセス
+- 特定IPアドレス限定でのALBアクセス
 - IAMロールによる最小権限の原則
 - VPCプライベートサブネットでのFargate実行
 
@@ -111,7 +110,7 @@ aws ecs update-service --cluster strands-cluster --service strands-service --for
 
 ```
 Internet
-    ↓ (自宅IPのみ)
+    ↓ (特定IPのみ)
 Application Load Balancer
     ↓
 ECS Fargate (Streamlit + Strands Agents)
@@ -137,18 +136,6 @@ cd lambda/mcp-server
 python app.py
 ```
 
-### CDKコマンド
-
-```bash
-npm run build     # TypeScriptコンパイル
-npm run watch     # 監視モード
-npm run test      # テスト実行
-npm run synth     # CloudFormationテンプレート生成
-npm run diff      # 差分確認
-npm run deploy    # デプロイ
-npm run destroy   # 削除
-```
-
 ## 📝 TODO
 
 - [ ] Lambda関数の実装（MCP、CloudTrail API）
@@ -156,26 +143,3 @@ npm run destroy   # 削除
 - [ ] Dockerfileの作成
 - [ ] CI/CDパイプライン設定
 - [ ] テストコード追加
-
-## 🤝 コントリビューション
-
-1. Forkしてブランチ作成
-2. 変更をコミット
-3. プルリクエスト作成
-
-## 📄 ライセンス
-
-MIT License
-
-## 🆘 トラブルシューティング
-
-### よくある問題
-
-1. **CDKデプロイエラー**: AWS認証情報とリージョン設定を確認
-2. **Streamlitアクセス不可**: セキュリティグループとIPアドレス設定を確認
-3. **Lambda実行エラー**: IAMロール権限を確認
-
-### サポート
-
-Issue作成またはDiscussionで質問してください。
-

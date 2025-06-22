@@ -44,7 +44,7 @@ def handler(event, context):
       role: props.cloudtrailMcpRole,
       description: 'CloudTrail MCP Server with Function URL',
       timeout: cdk.Duration.minutes(15),
-      memorySize: 1024
+      memorySize: 256
     });
 
     // Function URL with RESPONSE_STREAM mode for MCP streaming
