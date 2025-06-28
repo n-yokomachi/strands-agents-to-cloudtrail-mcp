@@ -1,34 +1,26 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { InfrastructureStack } from '../lib/infrastructure-stack';
-import { IAMStack } from '../lib/iam-stack';
-import { ApplicationStack } from '../lib/application-stack';
+import { UnifiedStack } from '../lib/stack';
+import { getConfig, APP_CONFIG } from '../lib/config';
 
 const app = new cdk.App();
 
-// 環境設定（後で.envから読み込み予定）
+// 設定を取得
+const config = getConfig();
+
+// CDK環境設定
 const env = {
-  account: process.env.CDK_DEFAULT_ACCOUNT,
-  region: process.env.CDK_DEFAULT_REGION,
+  account: config.awsAccountId,
+  region: config.awsRegion,
 };
 
-// Stack間の依存関係を考慮してデプロイ
-const infrastructureStack = new InfrastructureStack(app, 'InfrastructureStack', { env });
-
-const iamStack = new IAMStack(app, 'IAMStack', { 
-  env
-});
-
-const applicationStack = new ApplicationStack(app, 'ApplicationStack', {
+// 統合スタック
+const unifiedStack = new UnifiedStack(app, 'StrandsUnifiedStack', {
   env,
-  vpc: infrastructureStack.vpc,
-  cloudtrailMcpRole: iamStack.cloudtrailMcpRole,
-  fargateExecutionRole: iamStack.fargateExecutionRole,
-  fargateTaskRole: iamStack.fargateTaskRole
+  config
 });
 
 // タグ付け
-cdk.Tags.of(app).add('Project', 'CloudTrail-Behavior-Prediction');
-cdk.Tags.of(app).add('Environment', 'Development');
+cdk.Tags.of(app).add('Project', APP_CONFIG.projectName);
 cdk.Tags.of(app).add('ManagedBy', 'CDK'); 
