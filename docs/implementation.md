@@ -43,15 +43,15 @@ AWS CloudTrailのAPIイベントログを分析し、Claude Sonnet 4を使って
   - 機能: MCP プロトコル処理 + CloudTrail API統合
   - 権限: CloudTrail読み取り + 基本実行権限
 
-#### 技術構成（参考記事ベース）
-- **Lambda Web Adapter**: Express/FastAPI等のWebフレームワーク対応
+#### 技術構成（FastMCP + Lambda Web Adapter）
+- **Lambda Web Adapter**: HTTP/HTTPSサーバー対応
 - **Function URL**: RESPONSE_STREAMモードでストリーミング対応
+- **FastMCP**: MCP専用のPythonライブラリ（公式MCP SDKに統合済み）
 - **Streamable HTTP**: セッションレス通信でLambdaに最適
-- **MCP TypeScript SDK**: 標準MCPプロトコル実装
 
 #### 依存関係
 - **Lambda Layer**: AWS Lambda Web Adapter
-- **Python**: FastAPI + MCP SDK + boto3（CloudTrail API用）
+- **Python**: FastMCP + boto3（CloudTrail API用）
 
 ### 4. アプリケーションスタック (ApplicationStack)
 
@@ -101,7 +101,7 @@ AWS CloudTrailのAPIイベントログを分析し、Claude Sonnet 4を使って
 
 ### Phase 1: 基盤構築（週1）
 1. ネットワーク・IAMスタックのデプロイ
-2. Lambda MCPサーバーの基本実装
+2. Lambda MCPサーバーの基本実装（FastMCP使用）
 3. CloudTrail API連携テスト
 
 ### Phase 2: AI分析機能（週2）
@@ -125,7 +125,7 @@ AWS CloudTrailのAPIイベントログを分析し、Claude Sonnet 4を使って
 
 ### バックエンド
 - **Strands Agents**: AIエージェントオーケストレーション
-- **FastAPI**: MCP HTTPサーバー（Lambda Web Adapter経由）
+- **FastMCP**: MCP専用Pythonライブラリ（Lambda Web Adapter経由）
 - **Claude Sonnet 4**: 高度な分析・予測エンジン
 
 ### インフラ
@@ -149,12 +149,40 @@ AWS CloudTrailのAPIイベントログを分析し、Claude Sonnet 4を使って
 
 ### ローカル開発
 1. **MCPサーバーローカル実行**
-   - lambda/mcp-serverディレクトリでPythonアプリ起動
-   - ローカルでのMCP動作確認
+   - `lambda/`ディレクトリに移動
+   - `python main.py`でFastMCPサーバー起動（ポート8000）
+   - FastMCPでのMCP動作確認
 
 2. **Streamlitアプリローカル実行**
-   - fargate/strands-appディレクトリでStreamlit起動
+   - `app/`ディレクトリに移動
+   - `streamlit run main.py`でStreamlitアプリ起動（ポート8501）
    - ブラウザでの動作確認
+
+### Lambda MCPサーバーの実装状況
+- **✅ 完了**: FastMCP v2を使用したMCPサーバー実装
+- **✅ 完了**: CloudTrail APIのlookup_events統合
+- **✅ 完了**: 時間範囲・ユーザー名フィルタリング対応
+- **✅ 完了**: JSON形式レスポンス
+- **✅ 完了**: Lambda Web Adapter対応（ポート8000）
+
+### 実装されたMCPツール
+1. **lookup_cloudtrail_events**: CloudTrailイベント履歴取得
+2. **get_cloudtrail_event_names**: イベント名の集計
+3. **cloudtrail://status**: サーバー状態確認（リソース）
+
+### ディレクトリ構造
+```
+strands-agents_and_mcp-on-lambda/
+├── app/                     # Streamlitアプリ（Fargate用）
+│   ├── main.py             # Streamlitメイン
+│   └── requirements.txt    # Streamlit依存関係
+├── lambda/                  # Lambda MCPサーバー
+│   ├── main.py             # FastMCP MCPサーバー
+│   └── requirements.txt    # Lambda依存関係
+├── lib/                     # CDKスタック
+├── bin/                     # CDKアプリ
+└── docs/                    # ドキュメント
+```
 
 ## セキュリティ考慮事項
 
