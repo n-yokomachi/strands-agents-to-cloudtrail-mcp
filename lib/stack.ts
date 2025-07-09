@@ -114,37 +114,38 @@ export class UnifiedStack extends cdk.Stack {
       }
     });
 
-    // CloudTrail MCP Server Lambda
+    // CloudTrail MCP Server Lambda (Layerベース + Bundling)
     const cloudtrailMcpFunction = new lambda.Function(this, 'CloudTrailMCPServer', {
-      runtime: lambda.Runtime.PYTHON_3_11,
-      handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-import json
-
-def handler(event, context):
-    # CloudTrail MCP Server placeholder
-    return {
-        'statusCode': 200,
-        'headers': {
-            'Content-Type': 'application/json'
-        },
-        'body': json.dumps({
-            'message': 'CloudTrail MCP Server placeholder',
-            'protocol': 'MCP over Lambda Function URL',
-            'event_type': event.get('requestContext', {}).get('http', {}).get('method', 'UNKNOWN')
-        })
-    }
-      `),
-      role: cloudtrailMcpRole,
-      description: 'CloudTrail MCP Server with Function URL',
+      runtime: lambda.Runtime.PYTHON_3_13,
+      code: lambda.Code.fromAsset('./lambda', {
+        bundling: {
+          image: lambda.Runtime.PYTHON_3_13.bundlingImage,
+          command: [
+            'bash', '-c',
+            'pip install -r requirements.txt -t /asset-output && cp -au . /asset-output'
+          ]
+        }
+      }),
+      handler: 'run.sh',
+      memorySize: 256,
       timeout: cdk.Duration.minutes(15),
-      memorySize: 256
+      architecture: lambda.Architecture.ARM_64,
+      layers: [
+        lambda.LayerVersion.fromLayerVersionArn(this, 'LambdaWebAdapterLayer', 
+          `arn:aws:lambda:${cdk.Stack.of(this).region}:753240598075:layer:LambdaAdapterLayerArm64:18`)
+      ],
+      environment: {
+        AWS_LAMBDA_EXEC_WRAPPER: '/opt/bootstrap',
+        PORT: '8080'
+      },
+      role: cloudtrailMcpRole,
+      description: 'CloudTrail MCP Server with Lambda Web Adapter'
     });
 
     // Function URL
     const functionUrl = cloudtrailMcpFunction.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.NONE,
-      invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
+      invokeMode: lambda.InvokeMode.BUFFERED,
       cors: {
         allowCredentials: true,
         allowedHeaders: ['*'],
