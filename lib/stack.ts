@@ -72,12 +72,11 @@ export class UnifiedStack extends cdk.Stack {
           statements: [
             new iam.PolicyStatement({
               effect: iam.Effect.ALLOW,
-              actions: ['cloudtrail:*'],
-              resources: ['*']
-            }),
-            new iam.PolicyStatement({
-              effect: iam.Effect.ALLOW,
-              actions: ['logs:*'],
+              actions: [
+                'cloudtrail:LookupEvents',
+                'cloudtrail:GetTrailStatus',
+                'cloudtrail:DescribeTrails'
+              ],
               resources: ['*']
             })
           ]
@@ -114,37 +113,29 @@ export class UnifiedStack extends cdk.Stack {
       }
     });
 
-    // CloudTrail MCP Server Lambda
-    const cloudtrailMcpFunction = new lambda.Function(this, 'CloudTrailMCPServer', {
-      runtime: lambda.Runtime.PYTHON_3_11,
-      handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-import json
-
-def handler(event, context):
-    # CloudTrail MCP Server placeholder
-    return {
-        'statusCode': 200,
-        'headers': {
-            'Content-Type': 'application/json'
-        },
-        'body': json.dumps({
-            'message': 'CloudTrail MCP Server placeholder',
-            'protocol': 'MCP over Lambda Function URL',
-            'event_type': event.get('requestContext', {}).get('http', {}).get('method', 'UNKNOWN')
-        })
-    }
-      `),
-      role: cloudtrailMcpRole,
-      description: 'CloudTrail MCP Server with Function URL',
+    // CloudTrail MCP Server Lambda (Container Image)
+    const cloudtrailMcpFunction = new lambda.DockerImageFunction(this, 'CloudTrailMCPServer', {
+      code: lambda.DockerImageCode.fromImageAsset('./lambda'),
+      memorySize: 256,
       timeout: cdk.Duration.minutes(15),
-      memorySize: 256
+      architecture: lambda.Architecture.ARM_64,
+      environment: {
+        UV_CACHE_DIR: '/tmp/uv-cache',
+        UV_NO_SYNC: '1',
+        AWS_LAMBDA_ADAPTER_BUFFER_OFF: '1',
+        AWS_LAMBDA_ADAPTER_CALLBACK_PATH: '/callback',
+        AWS_LAMBDA_ADAPTER_HTTP_PROXY_BUFFERING: 'off',
+        PYTHONPATH: '/app',
+        PATH: '/app/.venv/bin:$PATH'
+      },
+      role: cloudtrailMcpRole,
+      description: 'CloudTrail MCP Server with FastMCP and Lambda Web Adapter'
     });
 
     // Function URL
     const functionUrl = cloudtrailMcpFunction.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.NONE,
-      invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
+      invokeMode: lambda.InvokeMode.BUFFERED,
       cors: {
         allowCredentials: true,
         allowedHeaders: ['*'],
