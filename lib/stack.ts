@@ -72,12 +72,11 @@ export class UnifiedStack extends cdk.Stack {
           statements: [
             new iam.PolicyStatement({
               effect: iam.Effect.ALLOW,
-              actions: ['cloudtrail:*'],
-              resources: ['*']
-            }),
-            new iam.PolicyStatement({
-              effect: iam.Effect.ALLOW,
-              actions: ['logs:*'],
+              actions: [
+                'cloudtrail:LookupEvents',
+                'cloudtrail:GetTrailStatus',
+                'cloudtrail:DescribeTrails'
+              ],
               resources: ['*']
             })
           ]
@@ -114,32 +113,23 @@ export class UnifiedStack extends cdk.Stack {
       }
     });
 
-    // CloudTrail MCP Server Lambda (Layerベース + Bundling)
-    const cloudtrailMcpFunction = new lambda.Function(this, 'CloudTrailMCPServer', {
-      runtime: lambda.Runtime.PYTHON_3_13,
-      code: lambda.Code.fromAsset('./lambda', {
-        bundling: {
-          image: lambda.Runtime.PYTHON_3_13.bundlingImage,
-          command: [
-            'bash', '-c',
-            'pip install -r requirements.txt -t /asset-output && cp -au . /asset-output'
-          ]
-        }
-      }),
-      handler: 'run.sh',
+    // CloudTrail MCP Server Lambda (Container Image)
+    const cloudtrailMcpFunction = new lambda.DockerImageFunction(this, 'CloudTrailMCPServer', {
+      code: lambda.DockerImageCode.fromImageAsset('./lambda'),
       memorySize: 256,
       timeout: cdk.Duration.minutes(15),
       architecture: lambda.Architecture.ARM_64,
-      layers: [
-        lambda.LayerVersion.fromLayerVersionArn(this, 'LambdaWebAdapterLayer', 
-          `arn:aws:lambda:${cdk.Stack.of(this).region}:753240598075:layer:LambdaAdapterLayerArm64:18`)
-      ],
       environment: {
-        AWS_LAMBDA_EXEC_WRAPPER: '/opt/bootstrap',
-        PORT: '8080'
+        UV_CACHE_DIR: '/tmp/uv-cache',
+        UV_NO_SYNC: '1',
+        AWS_LAMBDA_ADAPTER_BUFFER_OFF: '1',
+        AWS_LAMBDA_ADAPTER_CALLBACK_PATH: '/callback',
+        AWS_LAMBDA_ADAPTER_HTTP_PROXY_BUFFERING: 'off',
+        PYTHONPATH: '/app',
+        PATH: '/app/.venv/bin:$PATH'
       },
       role: cloudtrailMcpRole,
-      description: 'CloudTrail MCP Server with Lambda Web Adapter'
+      description: 'CloudTrail MCP Server with FastMCP and Lambda Web Adapter'
     });
 
     // Function URL

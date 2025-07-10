@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional
 from fastmcp import FastMCP
 import os
 
-# FastMCP サーバーの初期化（stateless HTTP対応）
+# FastMCP サーバーの初期化
 mcp = FastMCP(stateless_http=True, json_response=True)
 
 # CloudTrail クライアントの初期化
@@ -46,7 +46,7 @@ def lookup_cloudtrail_events(
         lookup_params = {
             'StartTime': datetime.fromisoformat(start_time.replace('Z', '+00:00')),
             'EndTime': datetime.fromisoformat(end_time.replace('Z', '+00:00')),
-            'MaxItems': min(max_records, 50)  # APIの制限により最大50
+            'MaxResults': min(max_records, 50)  # APIの制限により最大50
         }
         
         # ユーザー名フィルターの追加（指定された場合のみ）
@@ -77,5 +77,5 @@ def lookup_cloudtrail_events(
 
 
 
-# FastAPIアプリケーションを取得
+# FastAPIアプリケーションを取得（ステートレスモード）
 app = mcp.http_app() 

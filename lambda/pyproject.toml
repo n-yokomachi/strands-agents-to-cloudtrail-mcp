@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cloudtrail-mcp"
+version = "0.1.0"
+description = "CloudTrail MCP Server"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp==2.10.4",
+    "boto3==1.35.94",
+    "uvicorn==0.34.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["cloudtrail_mcp"]
+
+[tool.uv]
+dev-dependencies = [] 
