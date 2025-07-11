@@ -6,6 +6,7 @@ from strands.tools.mcp import MCPClient
 from datetime import datetime
 import pytz
 import asyncio
+from components import get_link_icons_html, get_tool_list_html
 
 st.set_page_config(
     page_title="Strands Agent with MCP Server on Lambda", 
@@ -13,7 +14,22 @@ st.set_page_config(
 )
 
 st.title("🕵️‍♂️ AWS Detective Agent")
-st.markdown("*https://github.com/n-yokomachi/strands-agents_and_mcp-on-lambda*")
+
+# サイドバーにリンク
+with st.sidebar:
+    # Clear Chatボタンを上部に配置
+    if st.button("🗑️ Clear Chat", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+    
+    st.divider()
+    
+    st.markdown("### Link")
+    st.markdown(get_link_icons_html(), unsafe_allow_html=True)
+    st.divider()
+    
+    st.markdown("### Tool List")
+    st.markdown(get_tool_list_html(), unsafe_allow_html=True)
 
 if 'messages' not in st.session_state:
     st.session_state.messages = []
@@ -128,15 +144,4 @@ if prompt := st.chat_input("..."):
                 loop.close()
                 
                 if response:
-                    st.session_state.messages.append({"role": "assistant", "content": response})
-
-with st.sidebar:
-    st.header("Tool List")
-    st.markdown("""
-    - lookup_cloudtrail_events: CloudTrailイベントを検索 (MCP)
-    - get_current_date: 現在の日付と時刻を取得
-    """)
-    
-    if st.button("Clear Chat"):
-        st.session_state.messages = []
-        st.rerun() 
+                    st.session_state.messages.append({"role": "assistant", "content": response}) 
