@@ -70,8 +70,6 @@ aws-detective-agent/
 │   └── stack.ts           # Unified CDK stack definition
 ├── bin/
 │   └── app.ts             # CDK application entry point
-├── docs/
-│   └── implementation.md  # Detailed implementation guide
 └── cdk.json               # CDK configuration
 ```
 
