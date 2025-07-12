@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""
-CloudTrail MCP Server - Lambda Web Adapter Layer対応版
-"""
-import json
 import boto3
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional

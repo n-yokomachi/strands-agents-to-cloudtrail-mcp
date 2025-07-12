@@ -19,4 +19,4 @@ ENV AWS_LAMBDA_ADAPTER_HTTP_PROXY_BUFFERING="off"
 ENV PYTHONPATH=/app
 ENV PATH="/app/.venv/bin:$PATH"
 
-CMD ["uvicorn", "cloudtrail_mcp.main:app", "--host", "0.0.0.0", "--port", "8080"] 
+CMD ["uvicorn", "mcpserver.main:app", "--host", "0.0.0.0", "--port", "8080"] 

@@ -61,9 +61,9 @@ export class UnifiedStack extends cdk.Stack {
     );
 
     // IAM Roles
-    const cloudtrailMcpRole = new iam.Role(this, 'CloudTrailMCPLambdaRole', {
+    const mcpRole = new iam.Role(this, 'MCPLambdaRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
-      description: 'CloudTrail MCP Server Lambda execution role',
+      description: 'MCP Server Lambda execution role',
       managedPolicies: [
         iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
       ],
@@ -113,8 +113,8 @@ export class UnifiedStack extends cdk.Stack {
       }
     });
 
-    // CloudTrail MCP Server Lambda (Container Image)
-    const cloudtrailMcpFunction = new lambda.DockerImageFunction(this, 'CloudTrailMCPServer', {
+    // MCP Server Lambda (Container Image)
+    const mcpFunction = new lambda.DockerImageFunction(this, 'MCPServer', {
       code: lambda.DockerImageCode.fromImageAsset('./lambda'),
       memorySize: 256,
       timeout: cdk.Duration.minutes(15),
@@ -128,12 +128,12 @@ export class UnifiedStack extends cdk.Stack {
         PYTHONPATH: '/app',
         PATH: '/app/.venv/bin:$PATH'
       },
-      role: cloudtrailMcpRole,
-      description: 'CloudTrail MCP Server with FastMCP and Lambda Web Adapter'
+      role: mcpRole,
+      description: 'MCP Server with FastMCP and Lambda Web Adapter'
     });
 
     // Function URL
-    const functionUrl = cloudtrailMcpFunction.addFunctionUrl({
+    const functionUrl = mcpFunction.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.NONE,
       invokeMode: lambda.InvokeMode.BUFFERED,
       cors: {
@@ -169,7 +169,10 @@ export class UnifiedStack extends cdk.Stack {
       image: ecs.ContainerImage.fromDockerImageAsset(dockerImageAsset),
       logging: ecs.LogDrivers.awsLogs({
         streamPrefix: 'strands-app'
-      })
+      }),
+      environment: {
+        MCP_URL: `${functionUrl.url}mcp`
+      }
     });
 
     container.addPortMappings({
@@ -225,9 +228,9 @@ export class UnifiedStack extends cdk.Stack {
       description: 'Strands Agents Streamlit App URL'
     });
 
-    new cdk.CfnOutput(this, 'CloudTrailMCPFunctionURL', {
+    new cdk.CfnOutput(this, 'MCPFunctionURL', {
       value: functionUrl.url,
-      description: 'CloudTrail MCP Server Function URL'
+      description: 'MCP Server Function URL'
     });
   }
 } 

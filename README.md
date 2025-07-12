@@ -61,7 +61,7 @@ aws-detective-agent/
 │   ├── Dockerfile         # Container configuration
 │   └── deploy.sh          # Deployment script
 ├── lambda/                 # MCP Server
-│   ├── cloudtrail_mcp/    # CloudTrail MCP implementation
+│   ├── mcpserver/    # CloudTrail MCP implementation
 │   │   └── main.py        # FastMCP server with CloudTrail integration
 │   ├── Dockerfile         # Lambda container config
 │   └── pyproject.toml     # Python project configuration
