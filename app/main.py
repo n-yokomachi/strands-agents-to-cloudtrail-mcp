@@ -114,8 +114,8 @@ def extract_text_from_chunk(chunk):
     if direct_text := chunk.get('data'):
         return direct_text
     
-    delta = chunk.get('delta', {})
-    if delta_text := delta.get('text'):
+    deta = chunk.get('deta', {})
+    if delta_text := deta.get('text'):
         return delta_text
     
     return ""
