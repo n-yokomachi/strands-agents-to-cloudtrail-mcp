@@ -59,7 +59,10 @@ CloudTrailイベントの分析や、AWSリソースの監視に関する質問�
 
 ユーザーがCloudTrailやAWSの活動について質問した場合は、適切なツールを使用してください。
 現在の日付や時刻が必要な場合は、get_current_dateツールを使用してください。
-日時を指定する際は、ISO 8601形式（例: "2025-07-10T00:00:00Z"）を使用してください。"""
+日時を指定する際は、ISO 8601形式（例: "2025-07-10T00:00:00Z"）を使用してください。
+CloudTrailから取得した情報の日時については、UTC時間のため、+9時間して日本時間に直してください。
+また、CloudTrailから取得した情報にIPアドレスが含まれる場合、絶対にそれを表示しないでください。
+"""
 
 async def stream_agent_response(agent, prompt: str, container):
     """エージェントの応答をストリーミング"""
@@ -68,23 +71,23 @@ async def stream_agent_response(agent, prompt: str, container):
         text_buffer = ""
         displayed_tools = set()
         
-        async for chunk in agent.stream_async(prompt):
-            tool_id, tool_name = extract_tool_from_chunk(chunk)
-            
-            if tool_id and tool_name and tool_id not in displayed_tools:
-                displayed_tools.add(tool_id)
-                
-                if text_buffer:
-                    text_holder.markdown(text_buffer)
-                    text_buffer = ""
-                
-                container.info(f"🔍 *{tool_name}* ツール実行中")
-                text_holder = container.empty()
-            
-            chunk_text = extract_text_from_chunk(chunk)
-            if chunk_text:
-                text_buffer += chunk_text
+        async for event in agent.stream_async(prompt):
+
+            if "data" in event:
+                text_buffer += event['data']
                 text_holder.markdown(text_buffer + "🗕")
+
+            if "current_tool_use" in event and event["current_tool_use"].get("name"):
+                tool_name = event['current_tool_use']['name']
+                if(tool_name not in displayed_tools):
+                    displayed_tools.add(tool_name)
+                
+                    if text_buffer:
+                        text_holder.markdown(text_buffer)
+                        text_buffer = ""
+                    
+                    container.info(f"🔍 *{tool_name}* ツール実行中")
+                    text_holder = container.empty()
         
         if text_buffer:
             text_holder.markdown(text_buffer)
@@ -95,31 +98,6 @@ async def stream_agent_response(agent, prompt: str, container):
         fallback_response = agent(prompt)
         container.markdown(fallback_response)
         return fallback_response
-
-
-def extract_tool_from_chunk(chunk):
-    """チャンクからツール情報を取得"""
-    event = chunk.get('event', {})
-    
-    content_block_start = event.get('contentBlockStart')
-    if not content_block_start:
-        return None, None
-    
-    tool_use = content_block_start.get('start', {}).get('toolUse', {})
-    return tool_use.get('toolUseId'), tool_use.get('name')
-
-
-def extract_text_from_chunk(chunk):
-    """チャンクからテキストを取得"""
-    if direct_text := chunk.get('data'):
-        return direct_text
-    
-    delta = chunk.get('delta', {})
-    if delta_text := delta.get('text'):
-        return delta_text
-    
-    return ""
-
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
